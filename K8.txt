@@ -1,0 +1,85 @@
+Kubernetes is an open source platform for managing container technologies such as Docker
+
+This guide will walk you through how to install Kubernetes on Fraunhofer edge cloud Ubuntu 18.04 Instance
+
+The structure of the tutorial covers following steps 
+Step 1. Set up fraunhofer virtual machine Ubuntu 18.04 Instance.
+Step 2. Connect to virtual  machine Instance from local terminal via ssh user@ip of the virtual machine
+Step 3. Install and update the system dependencies 
+sudo apt-get update
+sudo apt-get install -y apt-transport-https
+sudo apt install docker.io
+# Check docker version using docker --version
+# If the docker automatically not started, try to start the docker manually using the 
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo systemctl status docker
+# Check the curl whether it is installed or not with curl --version or --v
+# If not install with below command 
+sudo apt-get install curl
+# Adding a signing key with .gpg extension
+sudo curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add.
+# Add the Kubernetes software repository
+sudo apt-add-repository "deb http://apt.kubernetes.io/kubernetes-xenial main"
+# Install the kubernetes tools
+# Check all the tools successfully installed or not  
+sudo apt-get install -y kubeadm kubectl kubelet
+sudo apt-mark hold kubeadm kubectl kubelet
+sudo kubeadm version
+# Disable the swap memory on each node 
+sudo swapoff -a
+# Set a host names for ech nodes using below commands 
+sudo hostnamectl set-hostname master-node
+sudo hostnamectl set-hostname worker-node01
+# Before intialising kubeadm init we need to add daemon.json file at "/etc/docker/".
+# In order to avoid mis-matches between drivers and kubernetes.
+# using touch command create a daemon.json at /etc/docker/ and using text editor via vim or nano open the daemon.json file 
+# copy the below lines and save it   
+{
+"exec-opts": ["native.cgroupdriver=systemd"]
+} 
+
+# Restart the docker and kubeadm services using 
+sudo systemctl restart docker
+sudo kubeadm reset
+
+# Now we need to initialize the pod network in kubernetes only on " Master Node "  
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+
+# Now you can see like this 
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+ 1. mkdir -p $HOME/.kube
+ 2. sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+ 3. sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 172.31.37.224:6443 --token 2jcb53.krt1i08yljnnkyqb \
+	--discovery-token-ca-cert-hash sha256:c6ef8a3b52fa8cc22f8933f502b61ce56b0ec135af9c5d1b503c8d1876a1a961 
+
+
+Make sure run the above (1,2 and 3) three commands to create a directoy for in master node
+
+# Now after there is no errors in the previous step, we need to set up a virtual network for communication across nodes 
+its your wish you can use flannel, calico ,...etc
+sudo kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+# Check the pod status 
+kubectl get pods --all-namespaces
+
+# Now we can join the worker nodes to our master node to enable communication between them and below command run on your worker nodes 
+kubeadm join 172.31.37.224:6443 --token 2jcb53.krt1i08yljnnkyqb --discovery-token-ca-cert-hash sha256:c6ef8a3b52fa8cc22f8933f502b61ce56b0ec135af9c5d1b503c8d1876a1a961 
+
+# now check the nodes of cluster and run the below command on master node 
+sudo kubectl get nodes
