@@ -2,6 +2,6 @@
 
 
 <p align="center">
-  <img width="300" height="280" src="1609004685014.gif">
+  <img width="300" height="280" src="kubernetes.gif">
 </p>
 
